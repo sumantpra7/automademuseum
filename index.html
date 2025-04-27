@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chatbot Ticket Booking</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script> <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        #chatbox {
+            background-color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 400px;
+            max-width: 90%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #chat {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .bot {
+            background-color: #e0f7fa; 
+            color: #00838f; 
+            border-radius: 10px 10px 10px 2px;
+            padding: 10px 15px;
+            align-self: flex-start;
+            max-width: 80%;
+            word-break: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .user {
+            background-color: #dcedc8; 
+            color: #558b2f; 
+            border-radius: 10px 10px 2px 10px;
+            padding: 10px 15px;
+            align-self: flex-end;
+            max-width: 80%;
+            word-break: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        #input-area {
+            display: flex;
+            padding: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        #userInput {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 25px;
+            margin-right: 10px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        #userInput:focus {
+            border-color: #00bcd4; 
+            box-shadow: 0 0 5px rgba(0, 188, 212, 0.5);
+        }
+
+        button {
+            background-color: #00bcd4; 
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            outline: none;
+        }
+
+        button:hover {
+            background-color: #008ba7; 
+        }
+
+        button:active {
+            background-color: #006064; 
+        }
+
+        
+        #chat button {
+            background-color: #4caf50; 
+            color: white;
+            border: none;
+            border-radius: 25px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            margin-top: 10px;
+            outline: none;
+        }
+
+        #chat button:hover {
+            background-color: #45a049; 
+        }
+
+        #chat button:active {
+            background-color: #388e3c; 
+        }
+    </style>
+</head>
+<body>
+    <div id="chatbox">
+        <div id="chat"></div>
+        <div id="input-area">
+            <input type="text" id="userInput" placeholder="Type here..." />
+            <button onclick="nextStep()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chat = document.getElementById("chat");
+        const userInput = document.getElementById("userInput");
+
+        let step = 0;
+        let formData = {};
+
+        function appendMessage(sender, text) {
+            const div = document.createElement("div");
+            div.className = sender;
+            div.innerText = text;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function validateInput(input) {
+            switch(step) {
+                case 0:
+                    return /^[A-Za-z\s]+$/.test(input);
+                case 1:
+                    return /^\d{10}$/.test(input);
+                case 2:
+                    return /^\d{10}$/.test(input);
+                case 3:
+                case 4:
+                    return /^\d+$/.test(input);
+                default:
+                    return true;
+            }
+        }
+
+        function getErrorMessage() {
+            switch(step) {
+                case 0:
+                    return "Please enter a valid name (letters only).";
+                case 1:
+                    return "Aadhaar must be a 10-digit number.";
+                case 2:
+                    return "Phone number must be a 10-digit number.";
+                case 3:
+                case 4:
+                    return "Please enter a valid number.";
+                default:
+                    return "Invalid input.";
+            }
+        }
+
+        function nextStep() {
+            const input = userInput.value.trim();
+            if (!input) return;
+
+            if (!validateInput(input)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Invalid Input',
+                    text: getErrorMessage(),
+                });
+                userInput.value = "";
+                return;
+            }
+
+            appendMessage("user", input);
+            userInput.value = "";
+
+            switch(step) {
+                case 0:
+                    formData.name = input;
+                    appendMessage("bot", "Hi " + formData.name + ", please enter your 10-digit Aadhaar number.");
+                    break;
+                case 1:
+                    formData.aadhaar = input;
+                    appendMessage("bot", "Please enter your 10-digit phone number.");
+                    break;
+                case 2:
+                    formData.phone = input;
+                    appendMessage("bot", "How many half tickets (age < 12)?");
+                    break;
+                case 3:
+                    formData.halfTickets = parseInt(input);
+                    appendMessage("bot", "How many full tickets (age 13 and above)?");
+                    break;
+                case 4:
+                    formData.fullTickets = parseInt(input);
+                    const total = (formData.halfTickets * 20) + (formData.fullTickets * 40);
+                    formData.total = total;
+                    appendMessage("bot", `Total amount is ₹${formData.total}. Click the button below to simulate payment.`);
+
+                    const payBtn = document.createElement("button");
+                    payBtn.innerText = "Simulate Payment";
+                    payBtn.onclick = function () {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Payment Successful',
+                            text: 'Simulated Payment Done! Booking will be saved...',
+                            showConfirmButton: false,
+                            timer: 2000
+                        });
+
+                        
+                        fetch("http://localhost:3000/book-ticket", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                name: formData.name,
+                                aadhaar: formData.aadhaar,
+                                phone: formData.phone,
+                                halfTickets: formData.halfTickets,
+                                fullTickets: formData.fullTickets,
+                                total: formData.total
+                            }),
+                        })
+                        .then(response => response.text())
+                        .then(data => {
+                            Swal.fire('Success!', '📝 Booking saved successfully!', 'success');
+                            generateInvoice();
+                        })
+                        .catch(error => {
+                            console.error(error);
+                            Swal.fire('Oops...', '❌ Failed to save booking to database.', 'error');
+                            generateInvoice();
+                        });
+                    };
+
+                    chat.appendChild(payBtn);
+                    break;
+            }
+            step++;
+        }
+
+        function generateInvoice() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            doc.setFontSize(16);
+            doc.text("🎟️ Ticket Invoice", 20, 20);
+            doc.setFontSize(12);
+            doc.text(`Name: ${formData.name}`, 20, 40);
+            doc.text(`Aadhaar: ${formData.aadhaar}`, 20, 50);
+            doc.text(`Phone: ${formData.phone}`, 20, 60);
+            doc.text(`Half Tickets: ${formData.halfTickets}`, 20, 70);
+            doc.text(`Full Tickets: ${formData.fullTickets}`, 20, 80);
+            doc.text(`Total Amount: ₹${formData.total}`, 20, 90);
+            doc.text(`Booking Time: ${new Date().toLocaleString()}`, 20, 100);
+
+            doc.save("ticket_invoice.pdf");
+        }
+
+        appendMessage("bot", "🎟️ Welcome to the ticket booking bot. What is your name?");
+    </script>
+</body>
+</html>
